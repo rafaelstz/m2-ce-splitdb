@@ -1,0 +1,30 @@
+{
+    "name": "magemojo/splitdb",
+    "description": "Use an alternative connection to use SELECT queries",
+    "require": {
+        "php": "~5.6.0|~7.0.0|~7.1.0",
+        "magento/magento-composer-installer": "*"
+    },
+    "type": "magento2-module",
+    "version": "1.0.0",
+    "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "MageMojo\\SplitDb\\": ""
+        }
+    },
+    "extra": {
+        "map": [
+            [
+                "*",
+                "MageMojo/SplitDb"
+            ]
+        ]
+    }
+}
