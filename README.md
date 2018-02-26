@@ -9,6 +9,6 @@
 
 
 ## License
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-© 2018 [MageMojo](https://magemojo.com/).
 
