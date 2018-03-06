@@ -8,7 +8,7 @@
 
 ## Manual Install
 
-- [Download this ZIP](https://github.com/magemojo/m2-ce-splitdb/archive/master.zip) and paste in your folder `app/code`.
+- [Download this ZIP](https://github.com/magemojo/m2-ce-splitdb/archive/master.zip) and paste in your root folder.
 
 - Add a new connection in your file `app/etc/env.php` called **readonly**, like the image below.
 
@@ -17,10 +17,8 @@
 - Run these commands in your terminal:
 
 ```bash
-bin/magento module:disable MageMojo_SplitDb
-bin/magento setup:upgrade
 bin/magento module:enable MageMojo_SplitDb
-bin/magento indexer:reindex
+bin/magento setup:upgrade
 ```
 
 ## License

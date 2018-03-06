@@ -281,9 +281,17 @@ class Mysql extends OriginalMysqlPdo
     private function isSelect($sql)
     {
         $hasSelect = (bool) (strpos(strtoupper($sql), 'SELECT `') !== false);
+        $writeQueries = ['UPDATE','INSERT', 'DESCRIBE'];
         $isInstanceOfSelect = (bool) ($sql instanceof Select);
 
-        if ($hasSelect || $isInstanceOfSelect) {
+        foreach ($writeQueries as $query){
+            if((strpos(strtoupper($sql), $query) !== false)){
+                return false;
+            }
+        }
+
+        if (($hasSelect || $isInstanceOfSelect)) {
+//            var_dump($sql);exit;
             return true;
         }
 
@@ -303,7 +311,7 @@ class Mysql extends OriginalMysqlPdo
         }
         if ($this->_transactionLevel === 0) {
             $this->logger->startTimer();
-            $this->_connect('write');
+            $this->_connect();
             $q = $this->_profiler->queryStart('begin', self::TRANSACTION);
             $this->_beginTransaction();
             $this->_profiler->queryEnd($q);
@@ -322,7 +330,7 @@ class Mysql extends OriginalMysqlPdo
     {
         if ($this->_transactionLevel === 1 && !$this->_isRolledBack) {
             $this->logger->startTimer();
-            $this->_connect('write');
+            $this->_connect();
             $q = $this->_profiler->queryStart('commit', self::TRANSACTION);
             $this->_commit();
             $this->_profiler->queryEnd($q);
@@ -345,7 +353,7 @@ class Mysql extends OriginalMysqlPdo
     {
         if ($this->_transactionLevel === 1) {
             $this->logger->startTimer();
-            $this->_connect('write');
+            $this->_connect();
             $q = $this->_profiler->queryStart('rollback', self::TRANSACTION);
             $this->_rollBack();
             $this->_profiler->queryEnd($q);
@@ -365,8 +373,8 @@ class Mysql extends OriginalMysqlPdo
      */
     protected function _beginTransaction()
     {
-        $this->_connect('write');
-        $this->_connectionWrite->beginTransaction();
+        $this->_connect();
+        $this->_connection->beginTransaction();
     }
 
     /**
@@ -374,16 +382,16 @@ class Mysql extends OriginalMysqlPdo
      */
     protected function _commit()
     {
-        $this->_connect('write');
-        $this->_connectionWrite->commit();
+        $this->_connect();
+        $this->_connection->commit();
     }
 
     /**
      * @throws \Exception
      */
     protected function _rollBack() {
-        $this->_connect('write');
-        $this->_connectionWrite->rollBack();
+        $this->_connect();
+        $this->_connection->rollBack();
     }
 
     /**
