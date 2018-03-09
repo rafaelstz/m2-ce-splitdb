@@ -41,27 +41,21 @@ class Mysql extends OriginalMysqlPdo
     {
         $isConnected = (bool) ($this->_connection);
 
-        // Get the connection according the sql query
-//        $this->getConnectionBySql($sql);
-
-//         Check if the forced mode is the same currently utilized
+        // Check if the forced mode is the same currently utilized
         if($sql == 'write' && $this->isUsingReadConnection()){
-            $this->setConfig($this->getConfigWrite());
             $this->getConnectionBySql('write');
         }elseif($sql == 'read' && !$this->isUsingReadConnection()){
-            $this->setConfig($this->getConfigRead());
             $this->getConnectionBySql('read');
         }
 
         // Check if need to connect
         if($isConnected) {
             if (($this->isSelect($sql) || $sql == 'read') && !$this->isUsingReadConnection()) {
-                $this->setConfig($this->getConfigRead());
                 $this->getConnectionBySql('read');
             } elseif ((!$this->isSelect($sql) || $sql == 'write') && $this->isUsingReadConnection()) {
-                $this->setConfig($this->getConfigWrite());
                 $this->getConnectionBySql('write');
             }
+
             return;
         }
 
@@ -610,11 +604,11 @@ class Mysql extends OriginalMysqlPdo
     public function query($sql, $bind = array())
     {
         // connect to the database if needed
-        $this->_connect($sql);
-
-//        if($this->getConfig()['username'] == 'custom' && strpos($sql, 'INSERT') !== false){
-//            var_dump($sql);exit;
-//        }
+        if ($this->isSelect($sql)){
+            $this->_connect('read');
+        }else{
+            $this->_connect($sql);
+        }
 
         // is the $sql a Zend_Db_Select object?
         if ($sql instanceof Zend_Db_Select) {

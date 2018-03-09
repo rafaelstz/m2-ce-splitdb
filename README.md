@@ -4,7 +4,7 @@
 # SplitDb
 #### Magento 2 module to redirect SELECT queries to another database connection.  
 
-![Version 1.2.0](https://img.shields.io/badge/Version-1.2.0-green.svg)
+![Version 1.4.0](https://img.shields.io/badge/Version-1.4.0-green.svg)
 
 ## Manual Install
 
