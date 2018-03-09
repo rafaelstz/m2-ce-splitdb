@@ -12,7 +12,7 @@
 
 - Add a new connection in your file `app/etc/env.php` called **readonly**, like the image below.
 
-![MageMojo SplitDb](https://user-images.githubusercontent.com/610598/36800790-1ffcd17c-1c8f-11e8-813f-ac62933c26db.png)
+![MageMojo SplitDb](https://user-images.githubusercontent.com/610598/37181799-4268c930-230d-11e8-89f8-355142b60db5.png)
 
 - Run these commands in your terminal:
 
