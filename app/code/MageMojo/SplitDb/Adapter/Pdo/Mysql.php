@@ -39,11 +39,14 @@ class Mysql extends OriginalMysqlPdo
      */
     protected function _connect($sql = false)
     {
+
         $isConnected = (bool) ($this->_connection);
 
         // Check if the forced mode is the same currently utilized
         if($sql == 'write' && $this->isUsingReadConnection()){
+            $this->closeConnection();
             $this->getConnectionBySql('write');
+            parent::_connect();
         }elseif($sql == 'read' && !$this->isUsingReadConnection()){
             $this->getConnectionBySql('read');
         }
@@ -53,14 +56,14 @@ class Mysql extends OriginalMysqlPdo
             if (($this->isSelect($sql) || $sql == 'read') && !$this->isUsingReadConnection()) {
                 $this->getConnectionBySql('read');
             } elseif ((!$this->isSelect($sql) || $sql == 'write') && $this->isUsingReadConnection()) {
+                $this->closeConnection();
                 $this->getConnectionBySql('write');
+                parent::_connect();
             }
-
             return;
         }
 
          $this->getConnectionBySql($sql);
-
 
         if (!extension_loaded('pdo_mysql')) {
             throw new \Exception('pdo_mysql extension is not installed');
@@ -75,6 +78,7 @@ class Mysql extends OriginalMysqlPdo
         }
 
         unset($this->_config['port']);
+
 
         if (strpos($this->_config['host'], '/') !== false) {
             $this->_config['unix_socket'] = $this->_config['host'];
@@ -154,8 +158,6 @@ class Mysql extends OriginalMysqlPdo
 
                 if($this->isSelect($sql)){
                     $this->_connection = $this->_connectionRead;
-                }else{
-                    $this->_connection = $this->_connectionWrite;
                 }
             }
 
@@ -280,18 +282,24 @@ class Mysql extends OriginalMysqlPdo
      */
     private function isSelect($sql)
     {
-        $hasSelect = (bool) (strpos(strtoupper($sql), 'SELECT `') !== false);
-        $writeQueries = ['INSERT','UPDATE','DELETE','CREATE','DROP'];
-        $isInstanceOfSelect = (bool) ($sql instanceof Select);
 
-        foreach ($writeQueries as $query){
-            if(strpos(strtoupper($sql), $query) !== false){
-                return false;
+        $hasSelect = (bool) (strpos(substr(strtoupper($sql), 0, 6), 'SELECT `') !== false);
+        $writeQueries = ['INSERT','UPDATE','DELETE','CREATE','DROP','DESCRIBE'];
+        // Sometimes run a INSERT as a SELECT Instance, so in this case will return as FALSE
+        // $isInstanceOfSelect = (bool) ($sql instanceof Select);
+
+        if(is_string($sql)) {
+            foreach ($writeQueries as $query) {
+                if (strpos(strtoupper($sql), $query) !== false) {
+                    return false;
+                }
             }
-        }
-
-        if ($hasSelect) {
-            return true;
+            if ($hasSelect || $sql == 'read') {
+                if(is_string($sql)){
+                    var_dump($sql);
+                }
+                return true;
+            }
         }
 
         return false;
