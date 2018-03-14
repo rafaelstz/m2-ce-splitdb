@@ -27,9 +27,10 @@ class Mysql extends OriginalMysqlPdo
     protected $_config = [];
     protected $_configRead = [];
     protected $_configWrite = [];
-    private $_connectionRead;
-    private $_connectionWrite;
-    private $_readConnectExists;
+    protected $_connection = [];
+    protected $_connectionRead;
+    protected $_connectionWrite;
+    protected $_readConnectExists;
 
     /**
      * Connect using a query SQL or a string to write or read the database.
@@ -45,20 +46,24 @@ class Mysql extends OriginalMysqlPdo
         // Check if the forced mode is the same currently utilized
         if($sql == 'write' && $this->isUsingReadConnection()){
             $this->closeConnection();
+            $this->setConnection($this->_connectionWrite);
             $this->getConnectionBySql('write');
-            parent::_connect();
         }elseif($sql == 'read' && !$this->isUsingReadConnection()){
+            $this->closeConnection();
+            $this->setConnection($this->_connectionRead);
             $this->getConnectionBySql('read');
         }
 
         // Check if need to connect
         if($isConnected) {
-            if (($this->isSelect($sql) || $sql == 'read') && !$this->isUsingReadConnection()) {
-                $this->getConnectionBySql('read');
-            } elseif ((!$this->isSelect($sql) || $sql == 'write') && $this->isUsingReadConnection()) {
+            if ($this->isSelect($sql) && !$this->isUsingReadConnection()) {
                 $this->closeConnection();
+                $this->setConnection($this->_connectionRead);
+                $this->getConnectionBySql('read');
+            } elseif (!$this->isSelect($sql) && $this->isUsingReadConnection()) {
+                $this->closeConnection();
+                $this->setConnection($this->_connectionWrite);
                 $this->getConnectionBySql('write');
-                parent::_connect();
             }
             return;
         }
@@ -283,10 +288,12 @@ class Mysql extends OriginalMysqlPdo
     private function isSelect($sql)
     {
 
-        $hasSelect = (bool) (strpos(substr(strtoupper($sql), 0, 6), 'SELECT `') !== false);
-        $writeQueries = ['INSERT','UPDATE','DELETE','CREATE','DROP','DESCRIBE'];
-        // Sometimes run a INSERT as a SELECT Instance, so in this case will return as FALSE
-        // $isInstanceOfSelect = (bool) ($sql instanceof Select);
+        $hasSelect = (bool) ((strpos(strtoupper($sql), 'SELECT `') !== false) || (strpos(strtoupper($sql), 'SELECT @@') !== false));
+        $writeQueries = ['INSERT','UPDATE','DELETE','CREATE','DROP'];
+
+        if ($sql instanceof Select) {
+            $sql = (string) $sql->assemble();
+        }
 
         if(is_string($sql)) {
             foreach ($writeQueries as $query) {
@@ -295,13 +302,9 @@ class Mysql extends OriginalMysqlPdo
                 }
             }
             if ($hasSelect || $sql == 'read') {
-                if(is_string($sql)){
-                    var_dump($sql);
-                }
                 return true;
             }
         }
-
         return false;
     }
 
@@ -337,7 +340,7 @@ class Mysql extends OriginalMysqlPdo
     {
         if ($this->_transactionLevel === 1 && !$this->_isRolledBack) {
             $this->logger->startTimer();
-            $this->_connect();
+            $this->_connect('write');
             $q = $this->_profiler->queryStart('commit', self::TRANSACTION);
             $this->_commit();
             $this->_profiler->queryEnd($q);
@@ -611,12 +614,7 @@ class Mysql extends OriginalMysqlPdo
      */
     public function query($sql, $bind = array())
     {
-        // connect to the database if needed
-        if ($this->isSelect($sql)){
-            $this->_connect('read');
-        }else{
-            $this->_connect($sql);
-        }
+        $this->_connect($sql);
 
         // is the $sql a Zend_Db_Select object?
         if ($sql instanceof Zend_Db_Select) {
@@ -807,5 +805,19 @@ class Mysql extends OriginalMysqlPdo
     public function setReadConnectExists($readConnectExists)
     {
         $this->_readConnectExists = $readConnectExists;
+    }
+
+    /**
+     * @return array
+     */
+    public function getConnection(){
+        return $this->_connection;
+    }
+
+    /**
+     * @param array $connection
+     */
+    public function setConnection($connection){
+        $this->_connection = $connection;
     }
 }
