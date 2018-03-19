@@ -6,6 +6,9 @@
 
 ![Version 1.5.0](https://img.shields.io/badge/Version-1.5.0-green.svg)
 
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Manual Install
 
 - [Download this ZIP](https://github.com/magemojo/m2-ce-splitdb/archive/master.zip) and paste in your root folder.
