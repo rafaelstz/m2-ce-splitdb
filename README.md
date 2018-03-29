@@ -13,9 +13,35 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - [Download this ZIP](https://github.com/magemojo/m2-ce-splitdb/archive/master.zip) and paste in your root folder.
 
-- Add a new connection in your file `app/etc/env.php` called **readonly** and **readonly_setup**, like the image below.
+- Add a new connection in your file `app/etc/env.php` called **readonly** and **readonly_setup**, like the example env.php file below.
 
-![MageMojo SplitDb](https://user-images.githubusercontent.com/610598/37181799-4268c930-230d-11e8-89f8-355142b60db5.png)
+```
+'db' =>
+  array (
+    'table_prefix' => '',
+    'connection' =>
+    array (
+      'default' =>
+      array (
+        'host' => 'default_writer',
+        'dbname' => 'db_name',
+        'username' => 'user_name',
+        'password' => 'yourpassword',
+        'active' => '1',
+      ),
+
+      'readonly' =>
+      array (
+        'host' => 'reader_host',
+        'dbname' => 'db_name',
+        'username' => 'user_name',
+        'password' => 'yourpassword',
+        'active' => '1',
+      ),
+
+    ),
+  ),
+```
 
 - Run these commands in your terminal:
 
