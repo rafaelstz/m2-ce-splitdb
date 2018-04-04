@@ -38,20 +38,20 @@ class Mysql extends OriginalMysqlPdo
      * @throws \Exception
      * @throws \Zend_Db_Profiler_Exception
      */
+
     protected function _connect($sql = false)
     {
 
         $isConnected = (bool) ($this->_connection);
-        $toIgnore = (strpos(strtoupper($sql), 'SET NAMES') !== false || $sql == false);
+        $toIgnore = $this->_ignoreSQL($sql);
 
-        $this->_debug(false);
-
-
-        if($toIgnore && $this->isUsingReadConnection()){
-            $sql = 'read';
-        }elseif($toIgnore && $this->isUsingWriteConnection()){
+        if($toIgnore && $this->isUsingWriteConnection()){
             $sql = 'write';
+        }elseif($toIgnore && $this->isUsingReadConnection()){
+            $sql = 'read';
         }
+
+//        $this->_debug($sql);
 
         if($this->_transactionLevel !== 0){
             if($this->isUsingReadConnection()){
@@ -276,7 +276,9 @@ class Mysql extends OriginalMysqlPdo
                 }
                 var_dump('using read');
             } else {
-                if (is_string($sql) || is_bool($sql)) {
+                if (is_string($sql)) {
+                    var_dump($sql);
+                }elseif (is_bool($sql)){
                     var_dump($sql);
                 }
                 var_dump('using write');
@@ -288,11 +290,8 @@ class Mysql extends OriginalMysqlPdo
     {
         // baseline of DSN parts
         $dsn = $this->_config;
-        if($this->isSelect($sql)){
-            $dsnCustomConfig = $this->_configWrite;
-        }else{
-            $dsnCustomConfig = $this->_configWrite;
-        }
+
+        $dsnCustomConfig = $this->isSelect($sql) ? $this->_configRead : $this->_configWrite;
 
         // don't pass the username, password, charset, persistent and driver_options in the DSN
         unset($dsnCustomConfig['username']);
@@ -364,6 +363,32 @@ class Mysql extends OriginalMysqlPdo
     }
 
     /**
+     * Check if the SQL query needs to be ignored or not
+     * @param $sql
+     * @return bool
+     */
+    protected function _ignoreSQL($sql){
+
+        $ignoreTempQueries = ['eav_attribute'];
+
+        $toIgnore = ((strpos(substr($sql, 0, 10), 'SET NAMES') !== false) || $sql == false);
+
+        if(!$toIgnore && $this->isSelect($sql)){
+            $usingTempTable =  (isset($_SESSION['tempTables']) && $_SESSION['tempTables'] !== false);
+            if($usingTempTable){
+                foreach ($ignoreTempQueries as $query){
+                    if(strpos($sql, $query) !== false){
+//                        $this->_debug($sql);
+                        $toIgnore = true;
+                    };
+                }
+            }
+        }
+
+        return $toIgnore;
+    }
+
+    /**
      * Validate SQL query
      * @param $sql
      * @return bool
@@ -371,19 +396,30 @@ class Mysql extends OriginalMysqlPdo
     private function isSelect($sql)
     {
 
-        $hasSelect = (bool) ((strpos(substr($sql, 0, 10), 'SELECT `') !== false) || (strpos(substr($sql, 0, 10), 'SELECT @@') !== false));
-        $tmpTable = (bool)(strpos($sql, '_tmp_') !== false);
-        $toIgnore = (strpos(strtoupper($sql), 'SET NAMES') !== false || $sql == false);
-        $writeQueries = ['INSERT','UPDATE','DELETE','CREATE','DROP'];
+        $hasSelect = (bool) (
+            (strpos(substr($sql, 0, 10), 'SELECT `') !== false)
+//            || (strpos(substr($sql, 0, 10), 'SELECT @@') !== false)
+        );
+        $tmpTable = (bool)(
+            (strpos($sql, 'tmp') !== false)
+            || (strpos($sql, 'temp') !== false)
+        );
+        $toIgnore = (
+            (strpos(substr($sql, 0, 10), 'SET NAMES') !== false)
+            || $sql == false);
+        $writeQueries = ['INSERT','UPDATE','DELETE','CREATE','DROP', 'RENAME', 'SELECT @@'];
 
-        if($this->isUsingReadConnection() && $toIgnore && !$tmpTable) {
+        if($this->isUsingReadConnection() && $toIgnore) {
             return true;
-        }elseif ($this->isUsingWriteConnection() && $toIgnore){
+        }elseif ($this->isUsingWriteConnection() && $toIgnore ){
             return false;
         }
 
         if($tmpTable){
-            return false;
+            $_SESSION['tempTables'] = true;
+            if(!$hasSelect) {
+                return false;
+            }
         }
 
         if ($sql instanceof Select) {
@@ -483,7 +519,7 @@ class Mysql extends OriginalMysqlPdo
     protected function _beginTransaction()
     {
         $this->_connect('write');
-        $this->_connectionWrite->beginTransaction();
+        $this->_connection->beginTransaction();
     }
 
     /**
@@ -492,7 +528,7 @@ class Mysql extends OriginalMysqlPdo
     protected function _commit()
     {
         $this->_connect('write');
-        $this->_connectionWrite->commit();
+        $this->_connection->commit();
     }
 
     /**
