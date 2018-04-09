@@ -369,7 +369,7 @@ class Mysql extends OriginalMysqlPdo
      */
     protected function _ignoreSQL($sql){
 
-        $ignoreTempQueries = ['eav_attribute'];
+        $ignoreTempQueries = ['eav_attribute', '_tmp_'];
 
         $toIgnore = ((strpos(substr($sql, 0, 10), 'SET NAMES') !== false) || $sql == false);
 
